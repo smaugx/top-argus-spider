@@ -36,17 +36,14 @@ from tqdm import tqdm
 from mailbot import MailBot
 from slogging import slog
 
-import pdb
-
-
-config = {}
+from config import CONFIG
 
 def decorator_try_except(func):
     def new_func(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            slog.warn("Got error! {0}".format(repr(e)))
+            slog.warning("Got error! {0}".format(repr(e)))
             return 'EEE'
     return new_func
 
@@ -67,9 +64,10 @@ class TOPARGUS(object):
 
         #_____________________启动参数___________________________
         options = webdriver.ChromeOptions()
-        #options.add_argument('headless')
+        options.add_argument('headless')
         options.add_argument('disable-gpu')
-        options.add_argument("window-size=1220,1080")
+        #options.add_argument("window-size=1220,1080")
+        options.add_argument("window-size=1440,1080")
         options.add_argument("start-maximized")
         options.add_argument("no-sandbox")
 
@@ -78,9 +76,9 @@ class TOPARGUS(object):
         desired_capabilities['acceptSslCerts'] = True
         desired_capabilities['acceptInsecureCerts'] = True
         desired_capabilities['proxy'] = {
-            "httpProxy": config.get('PROXY'),
-            "ftpProxy": config.get('PROXY'),
-            "sslProxy": config.get('PROXY'),
+            "httpProxy": None,
+            "ftpProxy": None,
+            "sslProxy": None,
             "noProxy": None,
             "proxyType": "MANUAL",
             "class": "org.openqa.selenium.Proxy",
@@ -93,6 +91,7 @@ class TOPARGUS(object):
             #executable_path=CHROME_DRIVER_PATH,
             desired_capabilities = desired_capabilities)
         self.driver.set_page_load_timeout(30)
+        #self.driver.manage().window().maximize()
         return
 
 
@@ -103,7 +102,7 @@ class TOPARGUS(object):
             self.driver.close()
             self.driver.quit()
         except Exception as e:
-            slog.warn("quit Exception: ", e)
+            slog.warning("quit Exception: ", e)
         finally:
             return
 
@@ -116,19 +115,21 @@ class TOPARGUS(object):
             return True                                                                                        
         except:                                                                                                
             return False                                                                                       
+    def default_index(self):
+        url = '{0}/index.html'.format(self.url_prefix)
+        return url
 
     def randomString(self, stringLength=5):
         """Generate a random string of fixed length """
         letters = string.ascii_lowercase
         return ''.join(random.choice(letters) for i in range(stringLength))
 
-    @decorator_try_except
     def load_url(self, url, wait = 0):
         slog.info("访问 url:{0}".format(url))
         try:                                                                                                   
             self.driver.get(url)
         except Exception as e:                                                                                 
-            slog.warn("url:{0} cannot be reached:{1}".format(url,e))
+            slog.warning("url:{0} cannot be reached:{1}".format(url,e))
             return False, None
 
         if not os.path.exists('./temp'):
@@ -142,7 +143,7 @@ class TOPARGUS(object):
     def home(self):
         slog.info("加载首页")
         url = '{0}/index.html'.format(self.url_prefix)
-        return self.load_url(url = url)
+        return self.load_url(url = url, wait = 10)
 
     def system(self, cpu = False, send_bandwidth = False, recv_bandwidth = False):
         slog.info("加载系统情况页面")
@@ -158,50 +159,41 @@ class TOPARGUS(object):
             url = '{0}/system.html?field=recv_bandwidth'.format(self.url_prefix)
             self.load_url(url = url)
 
-        return True
+        return True,None
 
     def alarm(self, low = False, middle = False, high = True, all_alarm = False):
         slog.info("加载告警事件页面")
         if all_alarm == True:
             url = '{0}/alarm.html'.format(self.url_prefix)
-            return self.load_url(url = url)
+            return self.load_url(url = url, wait = 10)
 
         if high == True:
             url = '{0}/alarm.html?priority=2'.format(self.url_prefix)
-            return self.load_url(url = url)
+            return self.load_url(url = url, wait = 10)
 
         if middle == True:
             url = '{0}/alarm.html?priority=1'.format(self.url_prefix)
-            return self.load_url(url = url)
+            return self.load_url(url = url, wait = 10)
 
         if low == True:
             url = '{0}/alarm.html?priority=0'.format(self.url_prefix)
-            return self.load_url(url = url)
+            return self.load_url(url = url, wait = 10)
         
-        return True
+        return False, None
 
     def packet(self, dest_node_id = None):
+        slog.info("加载收包情况页面")
         url = '{0}/packet.html'.format(self.url_prefix)
         if dest_node_id:
             url = '{0}/packet.html?dest_node_id={1}'.format(self.url_prefix, dest_node_id)
         return self.load_url(url = url, wait = 30)
 
     def network(self, network_id = None):
+        slog.info("加载P2P网络情况页面")
         url = '{0}/network.html'.format(self.url_prefix)
         if network_id:
             url = '{0}/network.html?network_id={1}'.format(self.url_prefix, network_id)
         return self.load_url(url = url, wait = 30)
-
-    def send_mail_with_verifycode_wait_answer(self):
-        # send vcode email to someone, wait answer
-        subject = "weibo_vcode_{0}".format(self.randomString(5))
-        contents = [
-                '微博需要登录啦啦!',
-                self.mailbot.make_pic_inline(self.weibo_vcode_png)
-                ]
-        self.mailbot.send_mail('nikinumber4@163.com', subject, contents)
-        slog.info("send verify code in mail to nikinumber@163.com, wait for answer...")
-        return
 
     def go_top(self):
         self.driver.execute_script('var q=document.documentElement.scrollTop=0')
@@ -232,7 +224,7 @@ class TOPARGUS(object):
             if res.status_code == 200:
                 results = res.json().get('results')
         except Exception as e:
-            slog.warn("catch exception:{0}".format(e))
+            slog.warning("catch exception:{0}".format(e))
 
         slog.debug("get result:{0}".format(json.dumps(results)))
         return results
@@ -259,7 +251,7 @@ class TOPARGUS(object):
             if res.status_code == 200:
                 results = res.json().get('results')
         except Exception as e:
-            slog.warn("catch exception:{0}".format(e))
+            slog.warning("catch exception:{0}".format(e))
 
         slog.debug("get result:{0}".format(json.dumps(results)))
         return results
@@ -289,7 +281,7 @@ class TOPARGUS(object):
             if res.status_code == 200:
                 results = res.json().get('results')
         except Exception as e:
-            slog.warn("catch exception:{0}".format(e))
+            slog.warning("catch exception:{0}".format(e))
 
         slog.debug("get result:{0}".format(json.dumps(results)))
         return results
@@ -298,61 +290,143 @@ class TOPARGUS(object):
 
 
 @decorator_try_except
-def run_api(topargus):
+def run_api(topargus, mbot):
     '''
     def alarm_api(self):
     def node_info_api(self):
     def packet_drop_api(self):
     '''
     slog.debug("run_api alive")
+    subject = 'TOPARGUS 高优先级告警事件！'
+    contents = [
+            'TOPARGUS: {0}'.format(topargus.default_index())
+            ]
 
     results = topargus.alarm_api()
     if results:
-        if results.get('system_alarm_info'):
-            slog.warn('get alarm high level info')
+        #if results.get('system_alarm_info') and len(results.get('system_alarm_info')) > 0:
+        if True:
+            slog.warning('get alarm high level info')
             ret = topargus.alarm(high = True)  # (True, filename)
+            ret = list(ret)
+            if len(ret) == 2 and ret[1] != None:
+                if ret[1].endswith('png'):  # picture
+                    pic = mbot.make_pic_inline(ret[1])
+                    contents.append("[节点离线]")
+                    contents.append(pic)
+                    contents.append("\n\n\n")
+
 
     results = topargus.node_info_api()
     if results:
-        if results.get('node_info'):
-            slog.warn('get offline node_info')
-            # TODO
+        #if results.get('node_info') and len(results.get('node_info')) > 0:
+        if True:
+            slog.warning('get offline node_info')
+            contents.append("[离线节点列表]")
+            contents.append(json.dumps(results.get('node_info')))
+            contents.append("\n\n\n")
     
     # results = topargus.packet_drop_api()
 
-    return True
+    contents.append("MAIL END")
+    ret = mbot.send_mail(CONFIG.get('target_email_adr'), subject, contents)
+    if ret:
+        slog.info('send alarm_api mail to {0} ok'.format(CONFIG.get('target_email_adr')))
+        return True
+    else:
+        slog.warning('send alarm_api mail to {0} error'.format(CONFIG.get('target_email_adr')))
+        return False
 
-def th_api(topargus):
+def th_api(topargus, mbot):
     while True:
         #time.sleep(10 * 60)  # 10 min
-        time.sleep(10)  # 10 min
-        run_api(topargus)
+        time.sleep(5 * 60)  # 10 min
+        run_api(topargus, mbot)
     return
 
-def th_page(topargus):
+@decorator_try_except
+def run_page(topargus, mbot):
+    slog.debug("run_page alive")
+    subject = 'TOPARGUS 常规定时监控'
+    contents = [
+            'TOPARGUS: {0}'.format(topargus.default_index())
+            ]
+
+    ret = topargus.home()
+    ret = list(ret)
+    if len(ret) == 2 and ret[1] != None:
+        if ret[1].endswith('png'):  # picture
+            pic = mbot.make_pic_inline(ret[1])
+            contents.append("[首页]")
+            contents.append(pic)
+            contents.append("\n\n\n")
+
+    ret = topargus.alarm()
+    ret = list(ret)
+    if len(ret) == 2 and ret[1] != None:
+        if ret[1].endswith('png'):  # picture
+            pic = mbot.make_pic_inline(ret[1])
+            contents.append("[告警页面]")
+            contents.append(pic)
+            contents.append("\n\n\n")
+
+    ret = topargus.packet()
+    ret = list(ret)
+    if len(ret) == 2 and ret[1] != None:
+        if ret[1].endswith('png'):  # picture
+            pic = mbot.make_pic_inline(ret[1])
+            contents.append("[收包情况]")
+            contents.append(pic)
+            contents.append("\n\n\n")
+
+    ret = topargus.network()
+    ret = list(ret)
+    if len(ret) == 2 and ret[1] != None:
+        if ret[1].endswith('png'):  # picture
+            pic = mbot.make_pic_inline(ret[1])
+            contents.append("[P2P网络]")
+            contents.append(pic)
+            contents.append("\n\n\n")
+
+    contents.append("MAIL END")
+    ret = mbot.send_mail(CONFIG.get('target_email_adr'), subject, contents)
+    if ret:
+        slog.info('send alarm_api mail to {0} ok'.format(CONFIG.get('target_email_adr')))
+        return True
+    else:
+        slog.warning('send alarm_api mail to {0} error'.format(CONFIG.get('target_email_adr')))
+        return False
+
+
+def th_page(topargus, mbot):
     while True:
         #time.sleep(60 * 60)  # 60 min
-        time.sleep(1 * 60)  # 60 min
-        ret = topargus.home()
-        ret = topargus.alarm()
-        ret = topargus.packet()
-        ret = topargus.network()
+        time.sleep(30)  # 60 min
+        run_page(topargus, mbot)
     return
-
-
 
 
 def main():
-    username = 'test'
-    password = 'test'
-    host = '192.168.50.242'
-    topargus = TOPARGUS(username = username, password = password, host = host)
+    username = CONFIG.get('topargus_username')
+    password = CONFIG.get('topargus_password')
+    host     = CONFIG.get('topargus_host')
 
-    api_th = threading.Thread(target = th_api, args = (topargus, ))
+    topargus = TOPARGUS(username = username, password = password, host = host)
+    ret = topargus.packet()
+    return True
+
+    mbot = MailBot()
+    if not mbot.login(recv = False, trytimes = 10):
+        slog.error("mail login failed")
+        return False
+
+    slog.info('mail login ok')
+    print('mail login ok')
+    api_th = threading.Thread(target = th_api, args = (topargus, mbot, ))
     api_th.start()
     slog.info('api thread start')
 
-    page_th = threading.Thread(target = th_page, args = (topargus, ))
+    page_th = threading.Thread(target = th_page, args = (topargus, mbot, ))
     page_th.start()
     slog.info('page thread start')
 
@@ -361,7 +435,7 @@ def main():
     while True:
         time.sleep(1)
 
-    return
+    return True
 
 
 if __name__ == '__main__':

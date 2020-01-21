@@ -3,3 +3,5 @@ __pycache__/*
 temp/*
 vv/*
 .DS_Store
+config.py
+*.pyc

@@ -48,7 +48,7 @@ if __name__ =='__main__':
     #slog = Logger('log/xx.log',logging.WARNING,logging.DEBUG)
     slog.debug('一个debug信息')
     slog.info('一个info信息')
-    slog.warn('一个warning信息')
+    slog.warning('一个warning信息')
     slog.error('一个error信息')
     slog.critical('一个致命critical信息')
 
