@@ -405,11 +405,13 @@ def main():
     host     = CONFIG.get('topargus_host')
 
     topargus = TOPARGUS(username = username, password = password, host = host)
+    '''
     ret = topargus.home()
     ret = topargus.alarm()
     ret = topargus.network()
     ret = topargus.packet()
     return True
+    '''
 
     mbot = MailBot()
     if not mbot.login(recv = False, trytimes = 10):
