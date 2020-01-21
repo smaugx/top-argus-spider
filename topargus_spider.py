@@ -41,12 +41,14 @@ def decorator_try_except(func):
     return new_func
 
 class TOPARGUS(object):
-    def __init__(self, username, password, host):                               
+    def __init__(self, username, password, host, name, net_info, mydriver = None):
         slog.info('TOPARGUS init')
         self.username = username
         self.password = password
         self.host = host
         self.url_prefix = 'http://{0}:{1}@{2}'.format(self.username, self.password, self.host)
+        self.name = name
+        self.net_info = net_info
 
         # start mailbot ,try to login
         self.mailbot = MailBot().login(10)
@@ -55,36 +57,39 @@ class TOPARGUS(object):
         self.ss.mount('http://', HTTPAdapter(max_retries=3))
         self.ss.mount('https://', HTTPAdapter(max_retries=3))
 
-        #_____________________启动参数___________________________
-        options = webdriver.ChromeOptions()
-        options.add_argument('headless')
-        options.add_argument('disable-gpu')
-        #options.add_argument("window-size=1220,1080")
-        options.add_argument("window-size=1440,1280")
-        options.add_argument("start-maximized")
-        options.add_argument("no-sandbox")
+        if mydriver == None:
+            #_____________________启动参数___________________________
+            options = webdriver.ChromeOptions()
+            options.add_argument('headless')
+            options.add_argument('disable-gpu')
+            #options.add_argument("window-size=1220,1080")
+            options.add_argument("window-size=1440,1280")
+            options.add_argument("start-maximized")
+            options.add_argument("no-sandbox")
 
-        #_____________________代理参数___________________________
-        desired_capabilities = options.to_capabilities()
-        desired_capabilities['acceptSslCerts'] = True
-        desired_capabilities['acceptInsecureCerts'] = True
-        desired_capabilities['proxy'] = {
-            "httpProxy": None,
-            "ftpProxy": None,
-            "sslProxy": None,
-            "noProxy": None,
-            "proxyType": "MANUAL",
-            "class": "org.openqa.selenium.Proxy",
-            "autodetect": False,
-        }
+            #_____________________代理参数___________________________
+            desired_capabilities = options.to_capabilities()
+            desired_capabilities['acceptSslCerts'] = True
+            desired_capabilities['acceptInsecureCerts'] = True
+            desired_capabilities['proxy'] = {
+                "httpProxy": None,
+                "ftpProxy": None,
+                "sslProxy": None,
+                "noProxy": None,
+                "proxyType": "MANUAL",
+                "class": "org.openqa.selenium.Proxy",
+                "autodetect": False,
+            }
 
-        #_____________________启动浏览器___________________________
-        self.driver = webdriver.Chrome(
-            options=options,
-            #executable_path=CHROME_DRIVER_PATH,
-            desired_capabilities = desired_capabilities)
-        self.driver.set_page_load_timeout(30)
-        #self.driver.manage().window().maximize()
+            #_____________________启动浏览器___________________________
+            self.driver = webdriver.Chrome(
+                options=options,
+                #executable_path=CHROME_DRIVER_PATH,
+                desired_capabilities = desired_capabilities)
+            self.driver.set_page_load_timeout(30)
+            #self.driver.manage().window().maximize()
+        else:
+            self.driver = mydriver
         return
 
 
@@ -98,6 +103,12 @@ class TOPARGUS(object):
             slog.warning("quit Exception: ", e)
         finally:
             return
+
+    def get_topargus_name(self):
+        return self.name
+
+    def get_topargus_net_info(self):
+        return self.net_info
 
     def wait_for_ajax_data(self, wait = 0):                                                                              
         """                                                                                                    
@@ -292,7 +303,9 @@ def run_api(topargus, mbot):
     slog.debug("run_api alive")
     subject = 'TOPARGUS 高优先级告警事件！'
     contents = [
-            'TOPARGUS: {0}'.format(topargus.default_index())
+            'TOPARGUS_host: {0}'.format(topargus.default_index()),
+            'TOPARGUS_name: {0}'.format(topargus.get_topargus_name()),
+            'TOPARGUS_info: {0}'.format(topargus.get_topargus_net_info()),
             ]
 
     results = topargus.alarm_api()
@@ -342,7 +355,9 @@ def run_page(topargus, mbot):
     slog.debug("run_page alive")
     subject = 'TOPARGUS 常规定时监控'
     contents = [
-            'TOPARGUS: {0}'.format(topargus.default_index())
+            'TOPARGUS_host: {0}'.format(topargus.default_index()),
+            'TOPARGUS_name: {0}'.format(topargus.get_topargus_name()),
+            'TOPARGUS_info: {0}'.format(topargus.get_topargus_net_info()),
             ]
 
     ret = topargus.home()
@@ -399,27 +414,21 @@ def th_page(topargus, mbot):
     return
 
 
-def main():
-    username = CONFIG.get('topargus_username')
-    password = CONFIG.get('topargus_password')
-    host     = CONFIG.get('topargus_host')
+def run_topargus_spider(topargus_info, driver, mbot):
+    status   = topargus_info.get('status')
+    name     = topargus_info.get('name')
+    host     = topargus_info.get('host')
+    net_info = topargus_info.get('net_info')
+    if status != 'true':
+        slog.warn("topargus host:{0} name:{1} status false".format(host, name))
+        return
 
-    topargus = TOPARGUS(username = username, password = password, host = host)
-    '''
-    ret = topargus.home()
-    ret = topargus.alarm()
-    ret = topargus.network()
-    ret = topargus.packet()
-    return True
-    '''
+    slog.info("spider run for topargus host:{0} name:{1}".format(host, name))
+    username = topargus_info.get('username')
+    password = topargus_info.get('password')
 
-    mbot = MailBot()
-    if not mbot.login(recv = False, trytimes = 10):
-        slog.error("mail login failed")
-        return False
+    topargus = TOPARGUS(username = username, password = password, host = host, name = name, net_info  = net_info, mydriver = driver)
 
-    slog.info('mail login ok')
-    print('mail login ok')
     api_th = threading.Thread(target = th_api, args = (topargus, mbot, ))
     api_th.start()
     slog.info('api thread start')
@@ -428,12 +437,69 @@ def main():
     page_th.start()
     slog.info('page thread start')
 
+    return True
+
+def init_driver():
+    #_____________________启动参数___________________________
+    options = webdriver.ChromeOptions()
+    options.add_argument('headless')
+    options.add_argument('disable-gpu')
+    #options.add_argument("window-size=1220,1080")
+    options.add_argument("window-size=1440,1280")
+    options.add_argument("start-maximized")
+    options.add_argument("no-sandbox")
+
+    #_____________________代理参数___________________________
+    desired_capabilities = options.to_capabilities()
+    desired_capabilities['acceptSslCerts'] = True
+    desired_capabilities['acceptInsecureCerts'] = True
+    desired_capabilities['proxy'] = {
+        "httpProxy": None,
+        "ftpProxy": None,
+        "sslProxy": None,
+        "noProxy": None,
+        "proxyType": "MANUAL",
+        "class": "org.openqa.selenium.Proxy",
+        "autodetect": False,
+    }
+
+    #_____________________启动浏览器___________________________
+    mydriver = webdriver.Chrome(
+        options=options,
+        #executable_path=CHROME_DRIVER_PATH,
+        desired_capabilities = desired_capabilities)
+    mydriver.set_page_load_timeout(30)
+    #driver.manage().window().maximize()
+    return mydriver
+
+
+
+def main():
+    mbot = MailBot()
+    if not mbot.login(recv = False, trytimes = 10):
+        slog.error("mail login failed")
+        return False
+
+    slog.info('mail login ok')
+    print('mail login ok')
+
+
+    mydriver = init_driver()
+    if not mydriver:
+        slog.warn('chrome driver load error')
+        return False
+
+    topargus_host = CONFIG.get('topargus_host')
+    for item in topargus_host:
+        run_topargus_spider(item, mydriver, mbot)
+
     print("TOPARGUS 系统监控中...")
     slog.info("TOPARGUS 系统监控中...")
     while True:
         time.sleep(1)
 
     return True
+
 
 
 if __name__ == '__main__':

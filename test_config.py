@@ -31,10 +31,35 @@ MAIL_CONFIG_outlook = {
         }
 
 
+topargus_host = [
+        {
+            'name': 'netv4'
+            'status': 'false',
+            'net_info': '主网',
+            'username': 'test',
+            'password': 'test',
+            'host': '192.168.50.242',
+        },
+        {
+            'name': 'betatest_rober2',
+            'status': 'true',
+            'net_info': '春节外网环境',
+            'username': 'test',
+            'password': 'test',
+            'host': '64.225.3.94',
+        },
+        {
+            'name': 'holidays_hosts',
+            'status': 'true',
+            'net_info': '春节公司内网环境',
+            'username': 'test',
+            'password': 'test',
+            'host': '192.168.50.202',
+        },
+        ]
+
 CONFIG = {
         'mail_config': MAIL_CONFIG_outlook,
-        'target_email_adr': 'smaugxxx@xxx.com',
-        'topargus_username': 'test',
-        'topargus_password': 'test',
-        'topargus_host': '192.168.50.242',
+        'target_email_adr': 'smaug.jiao@topnetwork.org',
+        'topargus_host': topargus_host
         }
