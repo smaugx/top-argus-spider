@@ -1,21 +1,16 @@
 #!/usr/bin/env python
 #-*- coding:utf8 -*-
 
-import codecs
-import csv
 import os
 import random
 import copy
 import re
 import sys
-import traceback
-from collections import OrderedDict
 from datetime import datetime, timedelta
 import time
 import json
 import base64
 import threading
-from PIL import Image
 import string
 
 from selenium import webdriver
@@ -31,11 +26,9 @@ from requests.adapters import HTTPAdapter
 from requests_toolbelt import MultipartEncoder
 from urllib.parse import urlencode
 from urllib.parse import urlparse
-from lxml import etree
-from tqdm import tqdm
+
 from mailbot import MailBot
 from slogging import slog
-
 from config import CONFIG
 
 def decorator_try_except(func):
@@ -412,6 +405,9 @@ def main():
     host     = CONFIG.get('topargus_host')
 
     topargus = TOPARGUS(username = username, password = password, host = host)
+    ret = topargus.home()
+    ret = topargus.alarm()
+    ret = topargus.network()
     ret = topargus.packet()
     return True
 
