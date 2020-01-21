@@ -337,10 +337,10 @@ def run_api(topargus, mbot):
     contents.append("MAIL END")
     ret = mbot.send_mail(CONFIG.get('target_email_adr'), subject, contents)
     if ret:
-        slog.info('send alarm_api mail to {0} ok'.format(CONFIG.get('target_email_adr')))
+        slog.info('send alarm_api mail to {0} ok'.format(json.dumps(CONFIG.get('target_email_adr'))))
         return True
     else:
-        slog.warning('send alarm_api mail to {0} error'.format(CONFIG.get('target_email_adr')))
+        slog.warning('send alarm_api mail to {0} error'.format(json.dumps(CONFIG.get('target_email_adr'))))
         return False
 
 def th_api(topargus, mbot):
@@ -399,10 +399,10 @@ def run_page(topargus, mbot):
     contents.append("MAIL END")
     ret = mbot.send_mail(CONFIG.get('target_email_adr'), subject, contents)
     if ret:
-        slog.info('send alarm_api mail to {0} ok'.format(CONFIG.get('target_email_adr')))
+        slog.info('send alarm_api mail to {0} ok'.format(json.dumps(CONFIG.get('target_email_adr'))))
         return True
     else:
-        slog.warning('send alarm_api mail to {0} error'.format(CONFIG.get('target_email_adr')))
+        slog.warning('send alarm_api mail to {0} error'.format(json.dumps(CONFIG.get('target_email_adr'))))
         return False
 
 

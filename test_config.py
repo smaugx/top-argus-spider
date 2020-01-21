@@ -33,7 +33,7 @@ MAIL_CONFIG_outlook = {
 
 topargus_host = [
         {
-            'name': 'netv4'
+            'name': 'netv4',
             'status': 'false',
             'net_info': '主网',
             'username': 'test',
@@ -60,6 +60,6 @@ topargus_host = [
 
 CONFIG = {
         'mail_config': MAIL_CONFIG_outlook,
-        'target_email_adr': 'smaug.jiao@topnetwork.org',
+        'target_email_adr': ['smaug.jiao@topnetwork.org'],
         'topargus_host': topargus_host
         }

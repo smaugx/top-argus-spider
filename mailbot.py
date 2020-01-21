@@ -80,6 +80,7 @@ class MailBot(object):
     def make_pic_inline(self, pic_path):
         return yagmail.inline(pic_path)
     
+    # email_adr is list of addr
     def send_mail(self, email_adr, subject, contents):
         '''
         contents = [
@@ -93,12 +94,13 @@ class MailBot(object):
             return False
         try:
             self.sender.send(email_adr, subject, contents)
-            slog.info("send email to {0} success".format(email_adr))
+            slog.info("send email to {0} success".format(json.dumps(email_adr)))
             return True
         except Exception as e:
             slog.warning("send email to {0} failed:{1}".format(email_adr, e))
             return False
 
+    # email_adr is list of addr
     def send_mail_without_trycatch(self, email_adr, subject, contents):
         '''
         contents = [
@@ -111,7 +113,7 @@ class MailBot(object):
             slog.warning("mail_sender not logining")
             return False
         self.sender.send(email_adr, subject, contents)
-        slog.info("send email to {0} finished".format(email_adr))
+        slog.info("send email to {0} finished".format(json.dumps(email_adr)))
         return True
  
     
@@ -243,7 +245,7 @@ def main():
     #slog.info("get weibo vcode:{0}".format(vcode))
 
     # test send
-    email_adr = 'smaug.jiao@topnetwork.org'
+    email_adr = ['smaug.jiao@topnetwork.org', 'xplatform@dingtone.me']
     subject = 'test from python'
     contents = [
             'This is the body, and here is just text http://somedomain/image.png',
