@@ -4,7 +4,7 @@
 import os
 
 def check_alive():
-    cmd = 'ps -ef |grep -a topargus_spider.py |grep -av grep'
+    cmd = 'ps -ef |grep -a topargus_spider.py |grep -av grep |grep -av sh'
     ret = os.popen(cmd).readlines()
     if not ret:
         print("topargus_spider.py not alive, will restart")
