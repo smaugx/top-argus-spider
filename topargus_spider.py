@@ -350,6 +350,43 @@ def th_api(topargus, mbot):
         run_api(topargus, mbot)
     return
 
+# add dingtalk robot api
+def send_info_dingding(sendstr, receiver = None):
+    if receiver:
+        receiverlist = receiver.split(',')
+    else:
+        receiverlist = []
+    webhook = 'https://oapi.dingtalk.com/robot/send?access_token=7fef13e2296ec23c243ea452f43f2d977924c06aa4b218ca3802b33d7d3ba07b'
+    header = {"Content-Type": "application/json"}
+    text_data = json.dumps({"msgtype": "text",
+            "at": {
+                  "atMobiles": receiverlist,
+            "isAtAll": False
+           },
+            "text":
+                {"content": "{}".format(sendstr)}
+            })
+
+
+    title = "# **-----top-argus monitor system-----**\n\n"
+    markdown_data = json.dumps({
+        "msgtype": "markdown",
+        "markdown": {
+            "title": title,
+            "text": title + sendstr
+        },
+        "at": {
+           "atMobiles": receiverlist,
+           "isAtAll": False
+        }
+        })
+
+    try:
+        r = requests.post(webhook, headers = header, data = markdown_data, timeout = 10)
+        print(r.text)
+    except Exception as e:
+        print('catch exception:{0}'.format(e))
+
 @decorator_try_except
 def run_page(topargus, mbot):
     slog.debug("run_page alive")
@@ -368,6 +405,17 @@ def run_page(topargus, mbot):
             contents.append("[首页]")
             contents.append(pic)
             contents.append("\n\n\n")
+
+            # add for dingtalk robot
+            mainnet_html_dir = '/usr/local/smaug/nginx/webapp/mainnet/home.png'
+            from shutil import copyfile
+            copyfile(ret[1], mainnet_html_dir)
+            mainnet_url = 'http://142.93.126.168/mainnet/home.png'
+            markdown_text = '''## 全网丢包率情况\n
+![](http://142.93.126.168/mainnet/home.png)\n
+详情查看: [http://smaug:smaug_6666@142.93.126.168/index.html](http://smaug:smaug_6666@142.93.126.168/index.html)'''
+            send_info_dingding(markdown_text, None):
+
 
     ret = topargus.alarm()
     ret = list(ret)
